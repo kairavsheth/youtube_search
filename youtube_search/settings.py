@@ -125,4 +125,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-YT_API_KEY = "AIzaSyD_Yc5ZZaevusP-4bjMRTGf-acY_KGYlNc"
+YT_API_KEY = env('YT_API_KEY')
