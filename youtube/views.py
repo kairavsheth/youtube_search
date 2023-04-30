@@ -3,6 +3,7 @@
 import googleapiclient.discovery
 import googleapiclient.errors
 from django.contrib.postgres.search import TrigramSimilarity
+from django.db import IntegrityError
 from django.db.models.functions import Greatest
 from rest_framework import generics, filters
 from rest_framework.filters import SearchFilter
@@ -76,12 +77,18 @@ class Fetch(APIView):
             maxResults=50,
             q=keyword
         )
-        response = request.execute()
-
-        for i in filter(lambda x: x['id']['kind'] == 'youtube#video', response['items']):
-            Video(title=i['snippet']['title'], description=i['snippet']['description'],
-                  video_id=i['id']['videoId']).save()
-        return Response(data={'message': 'Fetched'})
+        response = list(filter(lambda x: x['id']['kind'] == 'youtube#video',
+                          request.execute()[
+                              'items']))  # improvise to fetch only videos using api instead of filterining over here
+        duplicates = 0
+        for i in response:
+            try:
+                Video(title=i['snippet']['title'], description=i['snippet']['description'],
+                      video_id=i['id']['videoId']).save()
+            except IntegrityError:
+                duplicates += 1
+        return Response(data={'message': 'Fetched', 'count': {'fetched': len(response), 'duplicates': duplicates,
+                                                              'inserted': len(response) - duplicates}})
 
 
 class List(generics.ListAPIView):
@@ -90,4 +97,3 @@ class List(generics.ListAPIView):
     filter_backends = [filters.SearchFilter]
     # filter_backends = [TrigramSimilaritySearchFilter]
     search_fields = ['title', 'description']
-
